@@ -1,7 +1,8 @@
 # ChatBot-DOC
 
+
 <div align="center">
-  <img src="image.png" alt="ChatBot-DOC Logo" width="400">
+  <img src="image-1.png" alt="ChatBot-DOC Logo" width="400">
 </div>
 
 A simple yet powerful chatbot that allows you to have conversations with any web-based documentation using LangChain and Groq's LLM API.
@@ -23,6 +24,10 @@ A simple yet powerful chatbot that allows you to have conversations with any web
 - Groq API key
 - OpenAI API key (optional)
 - LangChain API key
+
+<div align="center">
+  <img src="image.png" alt="ChatBot-DOC Logo" width="400">
+</div>
 
 ## Installation
 
