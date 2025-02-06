@@ -14,56 +14,51 @@ from langchain_core.runnables import RunnablePassthrough
 
 def create_doc_chat(url: str, config: dict):
     """
-    Crea un sistema di chat per la documentazione specificata usando LangChain e Groq
+    Creates a documentation chat system using LangChain and Groq
     """
-    print(f"Caricamento e indicizzazione di {url}...")
-    
-    # Carica il contenuto del sito web
+    print(f"Loading and indexing {url}...")
+    # Load website content
     loader = WebBaseLoader(url)
     documents = loader.load()
-    
-    # Dividi il testo in chunks usando la configurazione
+
+    # Split text into chunks using configuration
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=config["chunk_size"],
         chunk_overlap=config["chunk_overlap"]
     )
     splits = text_splitter.split_documents(documents)
-    
-    # Usa OpenAI per gli embeddings
+
+    # Use OpenAI for embeddings
     from langchain_openai import OpenAIEmbeddings
     embeddings = OpenAIEmbeddings()
     vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
-    
-    # Crea il retriever
+
+    # Create retriever
     retriever = vectorstore.as_retriever(
         search_type="similarity",
         search_kwargs={"k": 3}
     )
-    
-    # Inizializza il modello Groq con la configurazione
+
+    # Initialize Groq model with configuration
     llm = ChatGroq(
         temperature=config["temperature"],
         model_name=config["model_name"],
     )
-    
-    # Crea il template per il prompt
-    template = """Sei un assistente esperto che aiuta a rispondere a domande sulla documentazione.
-    Usa il contesto fornito per rispondere alla domanda.
-    Se non puoi rispondere usando il contesto, dillo onestamente.
-    
-    Contesto: {context}
-    
-    Domanda: {question}
-    
-    Risposta assistente:"""
-    
+
+    # Create prompt template
+    template = """You are an expert assistant who helps answer questions about documentation.
+    Use the provided context to answer the question.
+    If you cannot answer using the context, say so honestly.
+    Context: {context}
+    Question: {question}
+    Assistant's Answer:"""
     prompt = ChatPromptTemplate.from_template(template)
-    
-    # Crea la chain
+
+    # Create chain
     chain = (
         {
-            "context": retriever | (lambda docs: "\n\nFonti utilizzate:\n" + "\n".join([
-                f"\nURL: {doc.metadata.get('source', 'N/A')}\nTesto utilizzato:\n{doc.page_content}\n"
+            "context": retriever | (lambda docs: "\n\nSources used:\n" + "\n".join([
+                f"\nURL: {doc.metadata.get('source', 'N/A')}\nText used:\n{doc.page_content}\n"
                 for doc in docs
             ])),
             "question": RunnablePassthrough()
@@ -72,27 +67,23 @@ def create_doc_chat(url: str, config: dict):
         | llm
         | StrOutputParser()
     )
-    
-    print("Sistema pronto!")
+    print("System ready!")
     return chain
 
 def chat_loop(chain):
     """
-    Avvia un loop di chat interattivo
+    Starts an interactive chat loop
     """
-    print("\nBenvenuto! Puoi iniziare a fare domande sulla documentazione.")
-    print("Scrivi 'exit' per uscire.\n")
-    
+    print("\nWelcome! You can start asking questions about the documentation.")
+    print("Type 'exit' to quit.\n")
+
     while True:
-        user_input = input("Tu: ")
-        
+        user_input = input("You: ")
         if user_input.lower() == 'exit':
-            print("Arrivederci!")
+            print("Goodbye!")
             break
-        
         try:
             response = chain.invoke(user_input)
             print("\nBot:", response, "\n")
         except Exception as e:
-            print(f"\nErrore: {str(e)}\n")
-
+            print(f"\nError: {str(e)}\n")

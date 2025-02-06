@@ -9,13 +9,13 @@ def setup_environment():
         "GROQ_API_KEY": SecretStr(os.environ["GROQ_API_KEY"]),
         "OPENAI_API_KEY": os.environ["OPENAI_API_KEY"]
     }
-    
     missing_vars = [var for var, value in required_vars.items() if not value]
+    
     if missing_vars:
-        print(f"Errore: Le seguenti variabili d'ambiente sono mancanti: {', '.join(missing_vars)}")
-        print(f"Per favore, aggiungile al file .env in: {dotenv_path}")
+        print(f"Error: The following environment variables are missing: {', '.join(missing_vars)}")
+        print(f"Please add them to the .env file at: {dotenv_path}")
         exit(1)
-
+        
     config = {
         "chunk_size": int(os.getenv("CHUNK_SIZE", 1000)),
         "chunk_overlap": int(os.getenv("CHUNK_OVERLAP", 200)),

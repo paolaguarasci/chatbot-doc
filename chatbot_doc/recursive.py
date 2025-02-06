@@ -22,33 +22,33 @@ console = Console()
 
 def create_doc_chat_recursive(url, config):
     """
-    Crea un sistema di chat per la documentazione specificata usando LangChain e Groq
+    Creates a documentation chat system using LangChain and Groq
     """
     from langchain_community.document_loaders import RecursiveUrlLoader
     from bs4 import BeautifulSoup
     from urllib.parse import urlparse
 
-    print(f"Caricamento e indicizzazione di {url}...")
-    print("Questo potrebbe richiedere alcuni minuti per siti con molte pagine...")
+    print(f"Loading and indexing {url}...")
+    print("This might take a few minutes for sites with many pages...")
     
-    # Estrai il dominio base per limitare lo scraping
+    # Extract base domain to limit scraping
     parsed_url = urlparse(url)
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
     
-    # Configura il loader ricorsivo
+    # Configure recursive loader
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console
     ) as progress:
-        task = progress.add_task("[cyan]Caricamento pagine...", total=None)
+        task = progress.add_task("[cyan]Loading pages...", total=None)
         loader = RecursiveUrlLoader(
             url=url,
-            max_depth=2,  # Profondità massima di ricorsione
+            max_depth=2,  # Maximum recursion depth
             extractor=lambda x: BeautifulSoup(x, "html.parser").get_text(separator=" ", strip=True),
-            prevent_outside=True,  # Impedisce di uscire dal dominio iniziale
-            use_async=True,  # Usa loading asincrono per maggiore velocità
-            exclude_dirs=(  # Esclude directory comuni che non contengono documentazione
+            prevent_outside=True,  # Prevents going outside initial domain
+            use_async=True,  # Uses async loading for better speed
+            exclude_dirs=(  # Excludes common directories that don't contain documentation
                 "/assets/", "/static/", "/js/", "/css/", 
                 "/images/", "/img/", "/fonts/", "/search/"
             )
@@ -57,54 +57,54 @@ def create_doc_chat_recursive(url, config):
         try:
             documents = loader.load()
             progress.stop()
-            console.print(f"\n[green]✓ Caricate {len(documents)} pagine dal sito.[/green]")
+            console.print(f"\n[green]✓ Loaded {len(documents)} pages from the site.[/green]")
         except Exception as e:
             progress.stop()
-            console.print(f"\n[red]✗ Errore durante il caricamento delle pagine: {str(e)}[/red]")
-            console.print("[yellow]Provo a caricare solo la pagina principale...[/yellow]")
+            console.print(f"\n[red]✗ Error loading pages: {str(e)}[/red]")
+            console.print("[yellow]Trying to load only the main page...[/yellow]")
     
-    # Dividi il testo in chunks usando la configurazione
+    # Split text into chunks using configuration
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=config["chunk_size"],
         chunk_overlap=config["chunk_overlap"]
     )
     splits = text_splitter.split_documents(documents)
     
-    # Usa OpenAI per gli embeddings
+    # Use OpenAI for embeddings
     from langchain_openai import OpenAIEmbeddings
     embeddings = OpenAIEmbeddings()
     vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
     
-    # Crea il retriever
+    # Create retriever
     retriever = vectorstore.as_retriever(
         search_type="similarity",
         search_kwargs={"k": 3}
     )
     
-    # Inizializza il modello Groq con la configurazione
+    # Initialize Groq model with configuration
     llm = ChatGroq(
         temperature=config["temperature"],
         model_name=config["model_name"],
     )
     
-    # Crea il template per il prompt
-    template = """Sei un assistente esperto che aiuta a rispondere a domande sulla documentazione.
-    Usa il contesto fornito per rispondere alla domanda.
-    Se non puoi rispondere usando il contesto, dillo onestamente.
+    # Create prompt template
+    template = """You are an expert assistant who helps answer questions about documentation.
+    Use the provided context to answer the question.
+    If you cannot answer using the context, say so honestly.
     
-    Contesto: {context}
+    Context: {context}
     
-    Domanda: {question}
+    Question: {question}
     
-    Risposta assistente:"""
+    Assistant's Answer:"""
     
     prompt = ChatPromptTemplate.from_template(template)
     
-    # Crea la chain
+    # Create chain
     chain = (
         {
-            "context": retriever | (lambda docs: "\n\nFonti utilizzate:\n" + "\n".join([
-                f"\nURL: {doc.metadata.get('source', 'N/A')}\nTesto utilizzato:\n{doc.page_content}\n"
+            "context": retriever | (lambda docs: "\n\nSources used:\n" + "\n".join([
+                f"\nURL: {doc.metadata.get('source', 'N/A')}\nText used:\n{doc.page_content}\n"
                 for doc in docs
             ])),
             "question": RunnablePassthrough()
@@ -114,26 +114,26 @@ def create_doc_chat_recursive(url, config):
         | StrOutputParser()
     )
     
-    print("Sistema pronto!")
+    print("System ready!")
     return chain
 
 def chat_loop_recursive(chain):
     """
-    Avvia un loop di chat interattivo
+    Starts an interactive chat loop
     """
     console.print(Panel.fit(
-        "[cyan]Benvenuto nel Doc Chat![/cyan]\n"
-        "Puoi iniziare a fare domande sulla documentazione.\n"
-        "Scrivi [bold red]exit[/bold red] per uscire.",
+        "[cyan]Welcome to Doc Chat![/cyan]\n"
+        "You can start asking questions about the documentation.\n"
+        "Type [bold red]exit[/bold red] to quit.",
         title="Doc Chat",
         border_style="blue"
     ))
     
     while True:
-        user_input = Prompt.ask("\n[bold green]Tu")
+        user_input = Prompt.ask("\n[bold green]You")
         
         if user_input.lower() == 'exit':
-            console.print("\n[cyan]Arrivederci! 👋[/cyan]")
+            console.print("\n[cyan]Goodbye! 👋[/cyan]")
             break
         
         try:
@@ -142,31 +142,31 @@ def chat_loop_recursive(chain):
                 TextColumn("[progress.description]{task.description}"),
                 console=console
             ) as progress:
-                task = progress.add_task("[cyan]Elaborazione risposta...", total=None)
+                task = progress.add_task("[cyan]Processing response...", total=None)
                 response = chain.invoke(user_input)
             
-            # Divide la risposta in fonti e contenuto
-            parts = response.split("Risposta assistente:", 1)
+            # Split response into sources and content
+            parts = response.split("Assistant's Answer:", 1)
             if len(parts) == 2:
                 sources, content = parts
-                # Mostra le fonti in un panel
+                # Show sources in a panel
                 console.print(Panel(
                     Markdown(sources.strip()),
-                    title="[yellow]Fonti utilizzate[/yellow]",
+                    title="[yellow]Sources used[/yellow]",
                     border_style="yellow"
                 ))
-                # Mostra la risposta in un panel
+                # Show response in a panel
                 console.print(Panel(
                     Markdown(content.strip()),
-                    title="[cyan]Risposta[/cyan]",
+                    title="[cyan]Response[/cyan]",
                     border_style="blue"
                 ))
             else:
                 console.print(Panel(
                     Markdown(response),
-                    title="[cyan]Risposta[/cyan]",
+                    title="[cyan]Response[/cyan]",
                     border_style="blue"
                 ))
                 
         except Exception as e:
-            console.print(f"\n[red]Errore: {str(e)}[/red]")
+            console.print(f"\n[red]Error: {str(e)}[/red]")
