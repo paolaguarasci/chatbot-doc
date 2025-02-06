@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "chatbot-doc"
+version = "0.1.0"
+description = ""
+authors = ["Paola Guarasci <paolaguarasci@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "chatbot_doc"}]
+
+[tool.poetry.scripts]
+chatbot-doc = "chatbot_doc.__main__:main"
+
+
+[tool.poetry.dependencies]
+python = "^3.13"
+langgraph = "^0.2.69"
+langchain-core = "^0.3.33"
+python-dotenv = "^1.0.1"
+langchain-groq = "^0.2.4"
+langchain-community = "^0.3.16"
+langchain = "^0.3.17"
+chromadb = "^0.6.3"
+beautifulsoup4 = "^4.13.3"
+langchain-openai = "^0.3.3"
+rich = "^13.9.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
