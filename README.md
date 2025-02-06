@@ -1,9 +1,9 @@
-# ChatBot-DOC
-
-
 <div align="center">
   <img src="image-1.png" alt="ChatBot-DOC Logo" width="400">
 </div>
+
+
+# ChatBot-DOC
 
 A simple yet powerful chatbot that allows you to have conversations with any web-based documentation using LangChain and Groq's LLM API.
 
